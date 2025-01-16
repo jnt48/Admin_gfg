@@ -10,8 +10,9 @@ function Round4() {
   const [lightState, setLightState] = useState("green");
   const [newSolution, setNewSolution] = useState("");
   const [questionNumber, setQuestionNumber] = useState("");
-  const [batchNo, setBatchNo] = useState("Batch1");
-  const [fileContent, setFileContent] = useState(""); // Store file content
+  const [batchNo, setBatchNo] = useState(1);
+  const [questionName, setQuestionName] = useState("");
+  const [questionImage, setQuestionImage] = useState(null);
   const firebase = useFirebase();
 
   useEffect(() => {
@@ -72,37 +73,43 @@ function Round4() {
     }
   };
 
-  const handleFileUpload = (e) => {
+  const handleImageUpload = (e) => {
     const file = e.target.files[0];
-    if (!file) return;
-
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      setFileContent(event.target.result);
-    };
-    reader.onerror = () => {
-      setError("Failed to read file content");
-    };
-    reader.readAsText(file);
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = () => {
+        setQuestionImage(reader.result);
+      };
+      reader.onerror = () => {
+        setError("Failed to read the image file.");
+      };
+      reader.readAsDataURL(file);
+    }
   };
 
   const addNewQuestion = async (e) => {
     e.preventDefault();
     try {
       const db = getDatabase(firebase.app);
-      const questionsRef = ref(db, `Question4/${batchNo}`);
+      const batchKey = `Batch${batchNo}`;
+      const questionsRef = ref(db, `Question4/${batchKey}`);
       const newQuestionRef = push(questionsRef);
+
+      const imageData = questionImage || null;
+
       await set(newQuestionRef, {
-        name: fileContent,
+        name: questionName,
+        image: imageData,
         solution: newSolution,
         isActive: false,
         questionNumber: questionNumber,
       });
 
-      setFileContent("");
+      setQuestionName("");
       setNewSolution("");
       setQuestionNumber("");
-      setBatchNo("Batch1");
+      setBatchNo(1);
+      setQuestionImage(null);
 
       const updatedSnapshot = await get(questionsRef);
       const updatedData = updatedSnapshot.val();
@@ -112,7 +119,7 @@ function Round4() {
 
       setQuestions((prevState) => ({
         ...prevState,
-        [batchNo]: updatedQuestionList,
+        [batchKey]: updatedQuestionList,
       }));
     } catch (err) {
       console.error("Error adding new question:", err);
@@ -121,86 +128,122 @@ function Round4() {
   };
 
   const LightControl = () => (
-    <div
-      style={{
-        display: "flex",
-        gap: "10px",
-        justifyContent: "center",
-        marginBottom: "20px",
-      }}
-    >
-      {/* Green Light Button */}
+    <div className="flex gap-4 justify-center mb-6">
       <button
-        style={{
-          backgroundColor: lightState === "green" ? "#4CAF50" : "#ccc",
-          color: "white",
-        }}
+        className={`px-4 py-2 rounded-md text-white ${
+          lightState === "green" ? "bg-green-500" : "bg-gray-300"
+        }`}
         onClick={() => toggleLight("green")}
       >
         Green Light
       </button>
-      {/* Red Light Button */}
       <button
-        style={{
-          backgroundColor: lightState === "red" ? "#dc3545" : "#ccc",
-          color: "white",
-        }}
+        className={`px-4 py-2 rounded-md text-white ${
+          lightState === "red" ? "bg-red-500" : "bg-gray-300"
+        }`}
         onClick={() => toggleLight("red")}
       >
         Red Light
       </button>
-      <div>
+      <div className="px-4 py-2 bg-white rounded-md shadow">
         Current State: <strong>{lightState.toUpperCase()}</strong>
       </div>
     </div>
   );
 
   const AddQuestionForm = () => (
-    <form onSubmit={addNewQuestion}>
-      {/* Question Number */}
-      <input
-        type="number"
-        value={questionNumber}
-        onChange={(e) => setQuestionNumber(e.target.value)}
-        placeholder="Question Number"
-        required
-      />
-      {/* Batch Selection */}
-      <select value={batchNo} onChange={(e) => setBatchNo(e.target.value)}>
-        <option value="Batch1">Batch 1</option>
-        <option value="Batch2">Batch 2</option>
-      </select>
-      {/* File Input for Question */}
-      <input
-        type="file"
-        accept=".txt"
-        onChange={handleFileUpload}
-        required
-      />
-      {/* Solution Text */}
-      <textarea
-        value={newSolution}
-        onChange={(e) => setNewSolution(e.target.value)}
-        placeholder="Solution"
-        required
-      />
-      <button type="submit">Add Question</button>
+    <form onSubmit={addNewQuestion} className="bg-white shadow-md rounded-lg p-6 mb-8">
+      <h3 className="text-2xl font-bold mb-6 text-center text-gray-800">Add New Question</h3>
+      <div className="mb-4">
+        <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="questionNumber">
+          Question Number
+        </label>
+        <input
+          className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+          id="questionNumber"
+          type="number"
+          value={questionNumber}
+          onChange={(e) => setQuestionNumber(e.target.value)}
+          placeholder="Enter Question Number"
+          required
+        />
+      </div>
+      <div className="mb-4">
+        <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="batchNo">
+          Batch Number
+        </label>
+        <input
+          className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+          id="batchNo"
+          type="number"
+          value={batchNo}
+          onChange={(e) => setBatchNo(Number(e.target.value))}
+          placeholder="Enter Batch Number"
+          required
+        />
+      </div>
+      <div className="mb-4">
+        <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="questionName">
+          Question Name
+        </label>
+        <input
+          className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+          id="questionName"
+          type="text"
+          value={questionName}
+          onChange={(e) => setQuestionName(e.target.value)}
+          placeholder="Enter Question Name"
+          required
+        />
+      </div>
+      <div className="mb-4">
+        <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="questionImage">
+          Question Image
+        </label>
+        <input
+          className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+          id="questionImage"
+          type="file"
+          onChange={handleImageUpload}
+        />
+      </div>
+      <div className="mb-6">
+        <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="solution">
+          Solution
+        </label>
+        <textarea
+          className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline h-32"
+          id="solution"
+          value={newSolution}
+          onChange={(e) => setNewSolution(e.target.value)}
+          placeholder="Enter Solution"
+          required
+        />
+      </div>
+      <div className="flex items-center justify-center">
+        <button
+          className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
+          type="submit"
+        >
+          Add Question
+        </button>
+      </div>
     </form>
   );
 
   return (
-    <div>
-      {error && <h1>{error}</h1>}
-      <h1>Admin Dashboard</h1>
+    <div className="container mx-auto px-4 py-8">
+      {error && <h1 className="text-red-500 text-2xl font-bold mb-4">{error}</h1>}
+      <h1 className="text-4xl font-bold mb-8 text-center text-gray-800">Admin Dashboard</h1>
       <LightControl />
-      <h2>Questions for Batch 1</h2>
-      <div>
-        {/* {questions.Batch1.map((q) => (
+      <h2 className="text-2xl font-semibold mb-4 text-gray-700">Questions for Batch 1</h2>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
+        {questions.Batch1.map((q) => (
           <Card2 key={q.id} {...q} />
-        ))} */}
+        ))}
       </div>
-      <h2>Questions for Batch 2</h2>
-      <div>
+      <h2 className="text-2xl font-semibold mb-4 text-gray-700">Questions for Batch 2</h2>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
         {questions.Batch2.map((q) => (
           <Card2 key={q.id} {...q} />
         ))}
@@ -212,3 +255,4 @@ function Round4() {
 }
 
 export default Round4;
+
