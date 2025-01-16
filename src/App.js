@@ -13,8 +13,7 @@ function App() {
           <Route path="/" element={<AdminPanel />} />
           <Route path="/round/1" element={ <Round1 />} />
           <Route path="/round/2" element={ <Round2 />} />
-          <Route path="/round/3" element={ <Round3 />} />
-          <Route path="/round/4" element={ <Round4 />} />
+          <Route path="/round/3" element={ <Round4 />} />
         </Routes>
       </BrowserRouter>
     </>
